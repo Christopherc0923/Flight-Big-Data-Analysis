@@ -1,0 +1,411 @@
+0. Cluster Setup
+
+ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
+cat ~/.ssh/id_rsa.pub
+vim ~/.ssh/authorized_keys
+sudo vim /etc/hosts
+
+1. Install Java
+
+sudo apt-get update
+sudo apt-get install openjdk-8-jdk -y
+vim ~/.bash_profile
+
+# Content in bash
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+
+export HADOOP_HOME=/home/ubuntu/hadoop-2.6.5
+export PATH=$PATH:$HADOOP_HOME/bin
+export PATH=$PATH:$HADOOP_HOME/sbin
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export YARN_HOME=$HADOOP_HOME
+
+source ~/.bash_profile
+
+2. Install Hadoop on Master Node
+wget https://archive.apache.org/dist/hadoop/common/hadoop-2.6.5/hadoop-2.6.5.tar.gz
+tar -xvzf hadoop-2.6.5.tar.gz 
+cd hadoop-2.6.5/etc/hadoop/
+
+# Configuration of Hadoop
+vim core-site.xml
+
+<configuration>
+  <property>
+      <name>fs.defaultFS</name>
+      <value>hdfs://master:9000/</value>
+  </property>
+  <property>
+      <name>hadoop.tmp.dir</name>
+      <value>file:/home/ubuntu/hadoop-2.6.5/tmp</value>  
+  </property>
+</configuration>
+
+
+vim hdfs-site.xml
+
+<configuration>
+    <property>
+        <name>dfs.namenode.name.dir</name>
+        <value>file:/home/ubuntu/hadoop-2.6.5/dfs/name</value>
+    </property>
+    <property>
+        <name>dfs.datanode.data.dir</name>
+        <value>file:/home/ubuntu/hadoop-2.6.5/dfs/data</value>
+    </property>
+    <property>
+        <name>dfs.replication</name>
+        <value>3</value>
+    </property>
+</configuration>
+
+vim mapred-site.xml
+
+<configuration>
+    <property>
+        <name>mapreduce.framework.name</name>
+        <value>yarn</value>
+    </property>
+</configuration>
+
+
+vim yarn-site.xml
+
+<configuration>
+     <property>
+         <name>yarn.nodemanager.aux-services</name>
+         <value>mapreduce_shuffle</value>
+     </property>
+     <property>
+         <name>yarn.nodemanager.aux-services.mapreduce.shuffle.class</name>
+         <value>org.apache.hadoop.mapred.ShuffleHandler</value>
+     </property>
+     <property>
+         <name>yarn.resourcemanager.address</name>
+         <value>master:8032</value>
+     </property>
+     <property>
+         <name>yarn.resourcemanager.scheduler.address</name>
+         <value>master:8030</value>
+     </property>
+     <property>
+         <name>yarn.resourcemanager.resource-tracker.address</name>
+         <value>master:8035</value>
+     </property>
+     <property>
+         <name>yarn.resourcemanager.admin.address</name>
+         <value>master:8033</value>
+     </property>
+     <property>
+         <name>yarn.resourcemanager.webapp.address</name>
+         <value>master:8088</value>
+     </property>
+</configuration>
+
+vim hadoop-env.sh
+
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+export HADOOP_PREFIX=/home/ubuntu/hadoop-2.6.5 
+export HADOOP_CONF_DIR=/home/ubuntu/hadoop-2.6.5/etc/hadoop/
+export HADOOP_HOME=/home/ubuntu/hadoop-2.6.5
+export CLASSPATH=$CLASSPATH:$HADOOP_HOME/share/hadoop/*/lib/*.jar
+export CLASSPATH=$CLASSPATH:$HADOOP_HOME/share/hadoop/*/*.jar
+
+source hadoop-env.sh
+vim slaves
+vim master
+
+scp -r hadoop-2.6.5 slave#:~
+
+3. Test Hadoop
+
+cd hadoop-2.6.5
+bin/hdfs namenode -format
+sbin/stop-yarn.sh
+sbin/stop-dfs.sh
+jps
+hdfs dfsadmin -report
+
+sbin/stop-yarn.sh
+sbin/stop-dfs.sh
+
+4. Install Apache-Maven
+
+cd ~
+
+# Master Node Only
+wget https://archive.apache.org/dist/maven/maven-3/3.5.3/binaries/apache-maven-3.5.3-bin.tar.gz
+tar -xzvf apache-maven-3.5.3-bin.tar.gz
+
+vim ~/.bash_profile
+
+# Content
+export M2_HOME=/home/ubuntu/apache-maven-3.5.3
+export PATH=$PATH:$M2_HOME/bin
+
+source ~/.bash_profile
+
+mvn -version
+
+5. Install SQL
+
+sudo apt-get install mysql-server
+sudo apt install mysql-client
+sudo apt install libmysqlclient-dev
+
+sudo ln -s /usr/lib/jvm/java-8-openjdk-amd64/lib /usr/lib/jvm/java-8-openjdk-amd64/Classes
+sudo cp /usr/lib/jvm/java-8-openjdk-amd64/lib/tools.jar /usr/lib/jvm/java-8-openjdk-amd64/jre/lib/tools.jar
+
+6. Install Oozie
+
+cd ~
+wget https://archive.apache.org/dist/oozie/4.1.0/oozie-4.1.0.tar.gz
+tar -xzvf oozie-4.1.0.tar.gz
+cd oozie-4.1.0
+vim pom.xml
+
+# Change http://repo1.maven.org/maven2/ with https://repo1.maven.org/maven2/
+
+# Change depending on hadoop version
+bin/mkdistro.sh -DskipTests -Dhadoopversion=2.6.5
+
+cp /home/ubuntu/oozie-4.1.0/distro/target/oozie-4.1.0-distro.tar.gz /home/ubuntu/oozie-4.1.0-distro.tar.gz
+cd ~
+
+mv oozie-4.1.0 backforoozie
+tar -xzvf oozie-4.1.0-distro.tar.gz
+
+vim ~/.bash_profile
+
+export OOZIE_HOME=/home/ubuntu/oozie-4.1.0
+export OOZIE_CONFIG=$OOZIE_HOME/conf
+export CLASSPATH=$CLASSPATH:$OOZIE_HOME/bin
+
+source ~/.bash_profile
+
+# Oozie configuration in hadoop - For all instances including slaves nodes
+
+vim hadoop-2.6.5/etc/hadoop/core-site.xml
+
+# Add
+<property>
+     <name>hadoop.proxyuser.ubuntu.hosts</name>
+     <value>*</value>
+</property>
+<property>
+     <name>hadoop.proxyuser.ubuntu.groups</name>
+     <value>*</value>
+</property>
+
+# On Master Node
+sbin/start-dfs.sh 
+sbin/start-yarn.sh
+cd ~/oozie-4.1.0/conf
+
+vim oozie-site.xml
+
+# Add to bottom
+<property>
+    <name>oozie.service.JPAService.jdbc.driver</name>
+    <value>com.mysql.cj.jdbc.Driver</value>
+</property>
+<property>
+    <name>oozie.service.JPAService.jdbc.url</name>
+    <value>jdbc:mysql://localhost:3306/oozie?useSSL=false</value>
+</property>
+<property>
+    <name>oozie.service.JPAService.jdbc.username</name>
+    <value>oozie</value>
+</property>
+<property>
+    <name>oozie.service.JPAService.jdbc.password</name>
+    <value>mysql</value>
+</property>
+<property>
+    <name>oozie.service.HadoopAccessorService.hadoop.configurations</name>
+    <value>*=/home/ubuntu/hadoop-2.6.5/etc/hadoop</value>
+</property>
+<property>
+    <name>oozie.service.WorkflowAppService.system.libpath</name>
+    <value>hdfs://master:9000/user/ubuntu/share/lib</value>
+</property>
+
+mysql -uroot -p
+
+# Alternative
+sudo mysql -u root -p
+
+press enter
+
+# In sql mode
+DROP DATABASE IF EXISTS oozie;
+CREATE DATABASE oozie;
+CREATE USER 'oozie'@'%' IDENTIFIED BY 'mysql';
+GRANT ALL ON oozie.* TO 'oozie'@'%';
+FLUSH privileges;
+exit
+
+# Download two files and move these two files into libext folder later
+cd ~
+
+wget https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.11/mysql-connector-java-8.0.11.jar
+wget http://archive.cloudera.com/gplextras/misc/ext-2.2.zip
+cd ~/oozie-4.1.0/
+mkdir libext
+
+cp ../hadoop-2.6.5/share/hadoop/*/lib/*.jar libext/
+cp ../hadoop-2.6.5/share/hadoop/*/*.jar libext/
+cp ../mysql-connector-java-8.0.11.jar libext/
+cp ../ext-2.2.zip libext/
+
+cd libext
+mv servlet-api-2.5.jar servlet-api-2.5.jar.bak
+mv jsp-api-2.1.jar jsp-api-2.1.jar.bak
+mv jasper-compiler-5.5.23.jar jasper-compiler-5.5.23.jar.bak
+mv jasper-runtime-5.5.23.jar jasper-runtime-5.5.23.jar.bak
+mv slf4j-log4j12-1.7.5.jar slf4j-log4j12-1.7.5.jar.bak
+
+cd ~/oozie-4.1.0/
+
+sudo apt-get install zip
+sudo apt-get install unzip
+
+bin/oozie-setup.sh prepare-war
+
+vim conf/oozie-env.sh
+
+# Add
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+export OOZIE_PREFIX=/home/ubuntu/oozie-4.1.0
+export OOZIE_CONF_DIR=/home/ubuntu/oozie-4.1.0/conf/
+export OOZIE_HOME=/home/ubuntu/oozie-4.1.0
+export CLASSPATH=$CLASSPATH:$OOZIE_HOME/libext/*.jar
+
+source conf/oozie-env.sh
+
+# Add some files into hadoop folder
+cd ~/hadoop-2.6.5
+bin/hdfs dfs -mkdir /user
+bin/hdfs dfs -mkdir /user/ubuntu
+bin/hdfs dfs -put ../oozie-4.1.0/share /user/ubuntu/
+
+cd ~/hadoop-2.6.5
+sbin/start-dfs.sh
+sbin/start-yarn.sh
+sbin/mr-jobhistory-daemon.sh start historyserver
+cd ~/oozie-4.1.0
+bin/ooziedb.sh create -sqlfile oozie.sql -run
+bin/oozied.sh start
+bin/oozie admin --oozie http://localhost:11000/oozie -status
+
+### Setup Completed, Oozie should be running
+
+7. Running Project Flight Script
+
+# When Adjusting number of datanode on hadoop conf or script
+
+cd hadoop-2.6.5
+
+# del tmp file from datanode and masternode
+rm -r -f /home/ubuntu/hadoop-2.6.5/dfs/name/*
+rm -r -f /home/ubuntu/hadoop-2.6.5/dfs/data/*
+rm -r -f /home/ubuntu/hadoop-2.6.5/tmp/*
+rm -r -f hadoop-2.6.5
+
+bin/hdfs namenode -format
+sbin/start-dfs.sh
+sbin/start-yarn.sh
+hdfs dfsadmin -report
+
+bin/hdfs dfs -mkdir /user/ubuntu/input
+
+# Importing local files to MasterNode EC2
+
+# Add
+"C:\Program Files\Putty\pscp" -i PF.ppk pf.jar ubuntu@ec2-52-87-230-90.compute-1.amazonaws.com:/home/ubuntu/hadoop-2.6.5
+
+# Extract
+"C:\Program Files\Putty\pscp" -i PF.ppk ubuntu@ec2-52-87-230-90.compute-1.amazonaws.com:/home/ubuntu/hadoop-2.6.5/pf.jar .
+
+bin/hdfs dfs -mkdir /user/
+bin/hdfs dfs -mkdir /user/ubuntu
+bin/hdfs dfs -mkdir /user/ubuntu/input
+bin/hdfs dfs -put *.bz2 /user/ubuntu/input
+
+# Create ProjectFlight script and create JAR
+vim ProjectFlight.java
+javac ProjectFlight.java -cp $(hadoop classpath)
+jar cf pf.jar ProjectFlight*.class
+
+
+sbin/mr-jobhistory-daemon.sh start historyserver
+cd ~/oozie-4.1.0
+
+# Should restart if there is an issue with running Oozie (Optional)
+sudo mysql -u root -p
+enter
+
+DROP DATABASE IF EXISTS oozie;
+CREATE DATABASE oozie;
+CREATE USER 'oozie'@'%' IDENTIFIED BY 'mysql';
+GRANT ALL ON oozie.* TO 'oozie'@'%';
+FLUSH privileges;
+exit
+
+# Oozie Setup
+bin/ooziedb.sh create -sqlfile oozie.sql -run
+bin/oozied.sh start
+bin/oozie admin --oozie http://localhost:11000/oozie -status
+export OOZIE_URL=http://localhost:11000/oozie
+
+# Ooziefiles for ProjectFlight
+cd ~/oozie-4.1.0
+mkdir projectflight
+
+rm workflow.xml
+rm job.properties
+rm lib/pf.jar
+vim workflow.xml
+vim job.properties
+
+# Move pf.jar from hadoop to oozie/projectflight/lib
+
+# Put Oozie files into hadoop
+cd ~/hadoop-2.6.5
+hadoop fs -rm -r /user/ubuntu/projectflight
+bin/hdfs dfs -put ../oozie-4.1.0/projectflight /user/ubuntu/
+bin/hdfs dfs -put ../oozie-4.1.0/share /user/ubuntu/
+bin/hdfs dfs -ls /user/ubuntu/projectflight
+
+# Execute Oozie
+cd ~/oozie-4.1.0
+bin/oozie job -oozie http://localhost:11000/oozie -config projectflight/job.properties -run
+bin/oozie job -oozie http://localhost:11000/oozie -info <jobID>
+
+# Inorder to adjust inputfile size
+
+Step 1
+vim projectflight/job.properties
+
+
+Step2
+cd ~/hadoop-2.6.5
+hadoop fs -rm -r /user/ubuntu/projectflight
+bin/hdfs dfs -put ../oozie-4.1.0/projectflight /user/ubuntu/
+cd ~/oozie-4.1.0
+bin/oozie job -oozie http://localhost:11000/oozie -config projectflight/job.properties -run
+
+
+# Gathering output
+bin/hdfs dfs -get /res1
+cd res1
+cat part-r-00000
+
+
+
+
+
+
+

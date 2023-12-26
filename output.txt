@@ -1,0 +1,31 @@
+Part 1 - Probability of Airlines with Ontime Arrivals
+
+HA (Top 3)      0.9029268101727205
+AQ (Top 3)      0.8765931607120463
+ML (1) (Top 3)  0.8197167204386637
+EV (Bottom 3)   0.6242088428781305
+DH (Bottom 3)   0.5995845820510178
+B6 (Bottom 3)   0.5904075534910245
+
+Part 2 - Average Taxi Time for Incoming and Outgoing Airports
+
+Taxi In CKB (Taxi In - Top 3)   210.0
+Taxi In MKK (Taxi In - Top 3)   88.29166666666667
+Taxi In VLD (Taxi In - Top 3)   39.18583678296866
+Taxi In PUB (Taxi In - Bottom 3)        0.0
+Taxi In RCA (Taxi In - Bottom 3)        0.0
+Taxi In SKA (Taxi In - Bottom 3)        0.0
+
+Taxi Out CKB (Taxi Out - Top 3) 188.75
+Taxi Out JFK (Taxi Out - Top 3) 28.005020092345312
+Taxi Out EWR (Taxi Out - Top 3) 26.10568967683016
+Taxi Out BFF (Taxi Out - Bottom 3)      4.0
+Taxi Out MKK (Taxi Out - Bottom 3)      3.411764705882353
+Taxi Out PUB (Taxi Out - Bottom 3)      3.0
+
+Part 3 - Cancellation Reason
+
+A       289717
+
+
+
